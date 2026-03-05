@@ -1,6 +1,7 @@
-const { put, list } = require("@vercel/blob");
+const { put, list, del } = require("@vercel/blob");
 
-const BLOB_PATH = "justclaimed-settlements.json";
+const BLOB_PREFIX = "justclaimed-settlements";
+const BLOB_PATH   = "justclaimed-settlements.json";
 const ADMIN_SECRET = process.env.ADMIN_SECRET || "justclaimed-admin-2024";
 
 function parseBody(req) {
@@ -14,6 +15,14 @@ function parseBody(req) {
   });
 }
 
+async function getLatestBlob() {
+  const { blobs } = await list({ prefix: BLOB_PREFIX });
+  if (!blobs.length) return null;
+  // Sort newest first
+  blobs.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
+  return blobs[0];
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
@@ -21,19 +30,18 @@ module.exports = async function handler(req, res) {
 
   if (req.method === "OPTIONS") return res.status(200).end();
 
-  // GET — find and return current settlements
+  // GET — return current settlements
   if (req.method === "GET") {
     try {
-      const { blobs } = await list({ prefix: "justclaimed-settlements" });
-      if (!blobs.length) {
-        return res.status(200).json({ settlements: null });
-      }
-      const response = await fetch(blobs[0].url);
+      const blob = await getLatestBlob();
+      if (!blob) return res.status(200).json({ settlements: null });
+      const response = await fetch(blob.url);
       if (!response.ok) return res.status(200).json({ settlements: null });
       const settlements = await response.json();
       res.setHeader("Cache-Control", "s-maxage=30, stale-while-revalidate");
       return res.status(200).json({ settlements });
     } catch (err) {
+      console.error("GET error:", err.message);
       return res.status(200).json({ settlements: null });
     }
   }
@@ -50,14 +58,23 @@ module.exports = async function handler(req, res) {
       if (!Array.isArray(settlements)) {
         return res.status(400).json({ error: "settlements must be an array" });
       }
+
+      // Delete old blobs to avoid accumulation
+      const { blobs } = await list({ prefix: BLOB_PREFIX });
+      if (blobs.length) {
+        await del(blobs.map(b => b.url));
+      }
+
+      // Write fresh blob
       await put(BLOB_PATH, JSON.stringify(settlements), {
         access: "public",
         contentType: "application/json",
-        allowOverwrite: true,
+        addRandomSuffix: false,
       });
-      return res.status(200).json({ ok: true });
+
+      return res.status(200).json({ ok: true, count: settlements.length });
     } catch (err) {
-      console.error("Blob save error:", err.message);
+      console.error("POST error:", err.message);
       return res.status(500).json({ error: err.message });
     }
   }
