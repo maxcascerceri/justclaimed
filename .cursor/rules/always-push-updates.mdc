@@ -1,0 +1,13 @@
+---
+description: After deployable changes, commit and push to origin/main
+alwaysApply: true
+---
+
+# Push updates after changes
+
+When you make changes that affect the live site or that the user would want deployed (e.g. edits to `assets/`, `justclaimed-site/`, config, or any fix/feature they asked for):
+
+1. **Commit** the relevant files with a clear message.
+2. **Push** to `origin/main` (e.g. `git push`).
+
+Do this in the same turn as the change unless the user says not to push or to leave uncommitted. Do not ask "should I push?" — just push.
