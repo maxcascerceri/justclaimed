@@ -30,7 +30,9 @@ module.exports = async function handler(req, res) {
 
       // Sort newest first and fetch the latest
       blobs.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-      const r = await fetch(blobs[0].url + "?t=" + Date.now());
+      const r = await fetch(blobs[0].url, {
+        headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
+      });
       if (!r.ok) return res.status(200).json({ settlements: null });
 
       const settlements = await r.json();
@@ -58,7 +60,7 @@ module.exports = async function handler(req, res) {
       const blob = await put(
         BLOB_PREFIX + ".json",
         JSON.stringify(settlements),
-        { access: "public", contentType: "application/json" }
+        { access: "private", contentType: "application/json" }
       );
 
       // Clean up older blobs in background (don't await — keep response fast)

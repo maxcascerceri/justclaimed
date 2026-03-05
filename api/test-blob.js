@@ -15,7 +15,7 @@ module.exports = async function handler(req, res) {
   // Test 2: put
   try {
     const blob = await put("justclaimed-test.json", JSON.stringify({ test: true, ts: Date.now() }), {
-      access: "public",
+      access: "private",
       contentType: "application/json",
     });
     results.put = { ok: true, url: blob.url };
