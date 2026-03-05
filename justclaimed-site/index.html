@@ -33,13 +33,13 @@
         box-shadow: 0 24px 60px rgba(0,0,0,0.25);
       }
       #jc-checkout-close {
-        position: absolute;
-        top: 14px;
-        right: 14px;
-        width: 32px;
-        height: 32px;
+        position: fixed;
+        top: 12px;
+        right: 12px;
+        width: 36px;
+        height: 36px;
         border: none;
-        background: #f3f4f6;
+        background: rgba(255,255,255,0.92);
         border-radius: 50%;
         cursor: pointer;
         font-size: 18px;
@@ -47,10 +47,12 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        color: #6b7280;
-        z-index: 1;
+        color: #374151;
+        z-index: 100000;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+        pointer-events: all;
       }
-      #jc-checkout-close:hover { background: #e5e7eb; }
+      #jc-checkout-close:hover { background: #fff; }
       #jc-checkout-header {
         background: linear-gradient(135deg, #1a6b4d, #0f4f38);
         border-radius: 16px 16px 0 0;
@@ -100,8 +102,8 @@
 
     <!-- Embedded Stripe Checkout overlay -->
     <div id="jc-checkout-overlay">
+      <button id="jc-checkout-close" aria-label="Close checkout">✕</button>
       <div id="jc-checkout-box">
-        <button id="jc-checkout-close" aria-label="Close checkout">✕</button>
         <div id="jc-checkout-header">
           <h3>Start Your Free Trial</h3>
           <p>7 days free · then $6.99/month · cancel anytime</p>
