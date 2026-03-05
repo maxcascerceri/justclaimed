@@ -4,10 +4,181 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>JustClaimed — Find & Claim Class Action Settlements</title>
+    <script src="https://js.stripe.com/v3/"></script>
+    <script>window.__STRIPE_PK__ = "pk_live_51T6gCgCjBr2i2M8RaL3HE7jXH3t0DPsOlFdllMAB9xhD2Yvtm5Vy2M85VAiYAj8iP5VSSEOp7ttjDGBIe4ncIjJu00iBfmnOk8";</script>
     <script type="module" crossorigin src="./assets/index-CG0-4Lx9.js"></script>
     <link rel="stylesheet" crossorigin href="./assets/index-Q_LD6Lj3.css">
+    <style>
+      #jc-checkout-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.65);
+        z-index: 99999;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+      }
+      #jc-checkout-overlay.open {
+        display: flex;
+      }
+      #jc-checkout-box {
+        background: #fff;
+        border-radius: 16px;
+        width: 100%;
+        max-width: 520px;
+        max-height: 92vh;
+        overflow-y: auto;
+        position: relative;
+        box-shadow: 0 24px 60px rgba(0,0,0,0.25);
+      }
+      #jc-checkout-close {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        width: 32px;
+        height: 32px;
+        border: none;
+        background: #f3f4f6;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 18px;
+        line-height: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #6b7280;
+        z-index: 1;
+      }
+      #jc-checkout-close:hover { background: #e5e7eb; }
+      #jc-checkout-header {
+        background: linear-gradient(135deg, #1a6b4d, #0f4f38);
+        border-radius: 16px 16px 0 0;
+        padding: 24px 24px 20px;
+        text-align: center;
+        color: #fff;
+      }
+      #jc-checkout-header h3 {
+        margin: 0 0 4px;
+        font-size: 20px;
+        font-weight: 700;
+      }
+      #jc-checkout-header p {
+        margin: 0;
+        font-size: 13px;
+        opacity: 0.8;
+      }
+      #jc-checkout-form {
+        padding: 8px 0 0;
+      }
+      #jc-checkout-loading {
+        padding: 48px 24px;
+        text-align: center;
+        color: #6b7280;
+        font-size: 14px;
+      }
+      #jc-checkout-loading svg {
+        display: block;
+        margin: 0 auto 12px;
+        animation: jc-spin 0.9s linear infinite;
+      }
+      @keyframes jc-spin { to { transform: rotate(360deg); } }
+      #jc-checkout-error {
+        display: none;
+        padding: 12px 24px;
+        margin: 12px 24px;
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-radius: 8px;
+        color: #dc2626;
+        font-size: 13px;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
+
+    <!-- Embedded Stripe Checkout overlay -->
+    <div id="jc-checkout-overlay">
+      <div id="jc-checkout-box">
+        <button id="jc-checkout-close" aria-label="Close checkout">✕</button>
+        <div id="jc-checkout-header">
+          <h3>Start Your Free Trial</h3>
+          <p>7 days free · then $6.99/month · cancel anytime</p>
+        </div>
+        <div id="jc-checkout-error"></div>
+        <div id="jc-checkout-form">
+          <div id="jc-checkout-loading">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1a6b4d" stroke-width="2.5" stroke-linecap="round">
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+            </svg>
+            Loading secure checkout…
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        var overlay = document.getElementById("jc-checkout-overlay");
+        var closeBtn = document.getElementById("jc-checkout-close");
+        var errorEl = document.getElementById("jc-checkout-error");
+        var _currentCheckout = null;
+
+        function showError(msg) {
+          errorEl.textContent = msg;
+          errorEl.style.display = "block";
+        }
+
+        function closeOverlay() {
+          overlay.classList.remove("open");
+          if (_currentCheckout) {
+            _currentCheckout.destroy();
+            _currentCheckout = null;
+          }
+          // Reset form area for next open
+          var formEl = document.getElementById("jc-checkout-form");
+          formEl.innerHTML =
+            '<div id="jc-checkout-loading">' +
+            '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1a6b4d" stroke-width="2.5" stroke-linecap="round">' +
+            '<path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>' +
+            "</svg>Loading secure checkout…</div>";
+          errorEl.style.display = "none";
+        }
+
+        closeBtn.addEventListener("click", closeOverlay);
+        overlay.addEventListener("click", function (e) {
+          if (e.target === overlay) closeOverlay();
+        });
+
+        window.__jcOpenCheckout = async function (pendingSettlementId) {
+          overlay.classList.add("open");
+          errorEl.style.display = "none";
+
+          try {
+            var res = await fetch("/api/create-checkout-session", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ settlementId: pendingSettlementId || null }),
+            });
+            if (!res.ok) throw new Error("Could not start checkout. Please try again.");
+            var data = await res.json();
+            if (!data.clientSecret) throw new Error(data.error || "Missing client secret.");
+
+            var stripe = window.Stripe(window.__STRIPE_PK__);
+            var checkout = await stripe.initEmbeddedCheckout({
+              clientSecret: data.clientSecret,
+            });
+            _currentCheckout = checkout;
+
+            var formEl = document.getElementById("jc-checkout-form");
+            formEl.innerHTML = '<div id="jc-stripe-mount"></div>';
+            checkout.mount("#jc-stripe-mount");
+          } catch (err) {
+            showError(err.message || "Something went wrong. Please try again.");
+          }
+        };
+      })();
+    </script>
   </body>
 </html>
