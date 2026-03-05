@@ -156,10 +156,16 @@
           errorEl.style.display = "none";
 
           try {
+            // Read email collected during onboarding
+            var userEmail = localStorage.getItem("owed_email") || "";
+
             var res = await fetch("/api/create-checkout-session", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ settlementId: pendingSettlementId || null }),
+              body: JSON.stringify({
+                settlementId: pendingSettlementId || null,
+                email: userEmail,
+              }),
             });
             if (!res.ok) throw new Error("Could not start checkout. Please try again.");
             var data = await res.json();

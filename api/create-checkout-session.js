@@ -22,23 +22,25 @@ module.exports = async function handler(req, res) {
 
   try {
     const origin = req.headers.origin || `https://${req.headers.host}`;
+    const { email, settlementId } = req.body || {};
 
-    const session = await stripe.checkout.sessions.create({
+    const sessionParams = {
       ui_mode: "embedded",
       mode: "subscription",
-      line_items: [
-        {
-          price: PRICE_ID,
-          quantity: 1,
-        },
-      ],
-      subscription_data: {
-        trial_period_days: 7,
-      },
+      line_items: [{ price: PRICE_ID, quantity: 1 }],
+      subscription_data: { trial_period_days: 7 },
+      payment_method_types: ["card"],
       payment_method_collection: "always",
       return_url: `${origin}/dashboard?subscribed=true&session_id={CHECKOUT_SESSION_ID}`,
       billing_address_collection: "auto",
-    });
+    };
+
+    // Pre-populate email if provided
+    if (email && email.trim()) {
+      sessionParams.customer_email = email.trim();
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     res.status(200).json({ clientSecret: session.client_secret });
   } catch (err) {
