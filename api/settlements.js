@@ -62,11 +62,11 @@ module.exports = async function handler(req, res) {
         return res.status(400).json({ error: "settlements must be an array" });
       }
 
-      // Write new blob (random suffix = no conflicts)
+      // Overwrite the single settlements blob each time
       const blob = await put(
         BLOB_PREFIX + ".json",
         JSON.stringify(settlements),
-        { access: "private", contentType: "application/json" }
+        { access: "private", contentType: "application/json", addRandomSuffix: false, allowOverwrite: true }
       );
 
       // Clean up older blobs in background (don't await — keep response fast)
