@@ -9,184 +9,205 @@
     <script type="module" crossorigin src="./assets/index-CG0-4Lx9.js"></script>
     <link rel="stylesheet" crossorigin href="./assets/index-Q_LD6Lj3.css">
     <style>
-      #jc-checkout-overlay {
+      /* ── Checkout overlay ───────────────────────────── */
+      #jc-overlay {
         display: none;
         position: fixed;
         inset: 0;
-        background: rgba(0, 0, 0, 0.65);
+        background: rgba(0,0,0,0.6);
         z-index: 99999;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      #jc-overlay.open { display: block; }
+
+      /* centring wrapper — lets tall forms scroll naturally */
+      #jc-overlay-inner {
+        min-height: 100%;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        padding: 48px 16px 32px;
+        box-sizing: border-box;
+      }
+
+      /* close button floats above the box in the overlay */
+      #jc-close {
+        position: fixed;
+        top: 14px;
+        right: 14px;
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        border: none;
+        background: #fff;
+        cursor: pointer;
+        display: flex;
         align-items: center;
         justify-content: center;
-        padding: 16px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.22);
+        z-index: 100001;
+        flex-shrink: 0;
       }
-      #jc-checkout-overlay.open {
-        display: flex;
-      }
-      #jc-checkout-box {
+      #jc-close:hover { background: #f3f4f6; }
+      #jc-close svg { display: block; pointer-events: none; }
+
+      /* the white card */
+      #jc-box {
         background: #fff;
         border-radius: 16px;
         width: 100%;
         max-width: 520px;
-        max-height: 92vh;
-        overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.28);
+        overflow: hidden;
         position: relative;
-        box-shadow: 0 24px 60px rgba(0,0,0,0.25);
       }
-      #jc-checkout-close {
-        position: fixed;
-        top: 12px;
-        right: 12px;
-        width: 36px;
-        height: 36px;
-        border: none;
-        background: rgba(255,255,255,0.92);
-        border-radius: 50%;
-        cursor: pointer;
-        font-size: 18px;
-        line-height: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #374151;
-        z-index: 100000;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.18);
-        pointer-events: all;
-      }
-      #jc-checkout-close:hover { background: #fff; }
-      #jc-checkout-header {
+
+      /* green header */
+      #jc-header {
         background: linear-gradient(135deg, #1a6b4d, #0f4f38);
-        border-radius: 16px 16px 0 0;
         padding: 24px 24px 20px;
         text-align: center;
         color: #fff;
       }
-      #jc-checkout-header h3 {
-        margin: 0 0 4px;
-        font-size: 20px;
-        font-weight: 700;
-      }
-      #jc-checkout-header p {
-        margin: 0;
-        font-size: 13px;
-        opacity: 0.8;
-      }
-      #jc-checkout-form {
-        padding: 8px 0 0;
-      }
-      #jc-checkout-loading {
-        padding: 48px 24px;
-        text-align: center;
-        color: #6b7280;
-        font-size: 14px;
-      }
-      #jc-checkout-loading svg {
-        display: block;
-        margin: 0 auto 12px;
-        animation: jc-spin 0.9s linear infinite;
-      }
-      @keyframes jc-spin { to { transform: rotate(360deg); } }
-      #jc-checkout-error {
+      #jc-header h3 { margin: 0 0 4px; font-size: 20px; font-weight: 700; font-family: inherit; }
+      #jc-header p  { margin: 0; font-size: 13px; opacity: .82; font-family: inherit; }
+
+      /* error banner */
+      #jc-error {
         display: none;
-        padding: 12px 24px;
-        margin: 12px 24px;
+        margin: 12px 16px 0;
+        padding: 10px 14px;
         background: #fef2f2;
         border: 1px solid #fecaca;
         border-radius: 8px;
         color: #dc2626;
         font-size: 13px;
+        font-family: inherit;
       }
+
+      /* Stripe mounts here */
+      #jc-form { padding: 4px 0 0; }
+
+      /* spinner shown before Stripe loads */
+      #jc-loading {
+        padding: 48px 24px;
+        text-align: center;
+        color: #6b7280;
+        font-size: 14px;
+        font-family: inherit;
+      }
+      #jc-loading svg {
+        display: block;
+        margin: 0 auto 12px;
+        animation: jc-spin .9s linear infinite;
+      }
+      @keyframes jc-spin { to { transform: rotate(360deg); } }
     </style>
   </head>
   <body>
     <div id="root"></div>
 
-    <!-- Embedded Stripe Checkout overlay -->
-    <div id="jc-checkout-overlay">
-      <button id="jc-checkout-close" aria-label="Close checkout">✕</button>
-      <div id="jc-checkout-box">
-        <div id="jc-checkout-header">
-          <h3>Start Your Free Trial</h3>
-          <p>7 days free · then $6.99/month · cancel anytime</p>
-        </div>
-        <div id="jc-checkout-error"></div>
-        <div id="jc-checkout-form">
-          <div id="jc-checkout-loading">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1a6b4d" stroke-width="2.5" stroke-linecap="round">
-              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-            </svg>
-            Loading secure checkout…
+    <!-- ── Embedded Stripe checkout ────────────────── -->
+    <div id="jc-overlay">
+      <!-- close button: fixed to viewport, always above the iframe -->
+      <button id="jc-close" aria-label="Close">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#374151" stroke-width="2.2" stroke-linecap="round">
+          <line x1="2" y1="2" x2="14" y2="14"/>
+          <line x1="14" y1="2" x2="2" y2="14"/>
+        </svg>
+      </button>
+
+      <div id="jc-overlay-inner">
+        <div id="jc-box">
+          <div id="jc-header">
+            <h3>Start Your Free Trial</h3>
+            <p>7 days free &nbsp;·&nbsp; then $6.99/month &nbsp;·&nbsp; cancel anytime</p>
+          </div>
+          <div id="jc-error"></div>
+          <div id="jc-form">
+            <div id="jc-loading">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1a6b4d" stroke-width="2.5" stroke-linecap="round">
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+              </svg>
+              Loading secure checkout…
+            </div>
           </div>
         </div>
       </div>
     </div>
 
     <script>
-      (function () {
-        var overlay = document.getElementById("jc-checkout-overlay");
-        var closeBtn = document.getElementById("jc-checkout-close");
-        var errorEl = document.getElementById("jc-checkout-error");
-        var _currentCheckout = null;
+    (function () {
+      var overlay   = document.getElementById("jc-overlay");
+      var closeBtn  = document.getElementById("jc-close");
+      var errorEl   = document.getElementById("jc-error");
+      var formEl    = document.getElementById("jc-form");
+      var _checkout = null;
 
-        function showError(msg) {
-          errorEl.textContent = msg;
+      var LOADING_HTML =
+        '<div id="jc-loading">' +
+        '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1a6b4d" stroke-width="2.5" stroke-linecap="round">' +
+        '<path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>' +
+        '</svg>Loading secure checkout…</div>';
+
+      function closeOverlay() {
+        overlay.classList.remove("open");
+        document.body.style.overflow = "";
+        if (_checkout) { _checkout.destroy(); _checkout = null; }
+        formEl.innerHTML = LOADING_HTML;
+        errorEl.style.display = "none";
+        errorEl.textContent = "";
+      }
+
+      // close button
+      closeBtn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        closeOverlay();
+      });
+
+      // clicking the dark backdrop (but not the card) closes overlay
+      overlay.addEventListener("click", function (e) {
+        if (e.target === overlay || e.target.id === "jc-overlay-inner") {
+          closeOverlay();
+        }
+      });
+
+      // expose for the React bundle to call
+      window.__jcOpenCheckout = async function (pendingSettlementId) {
+        overlay.classList.add("open");
+        document.body.style.overflow = "hidden";
+        errorEl.style.display = "none";
+
+        try {
+          var userEmail = localStorage.getItem("owed_email") || "";
+
+          var res = await fetch("/api/create-checkout-session", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              settlementId: pendingSettlementId || null,
+              email: userEmail,
+            }),
+          });
+
+          if (!res.ok) throw new Error("Could not start checkout. Please try again.");
+          var data = await res.json();
+          if (!data.clientSecret) throw new Error(data.error || "Missing client secret.");
+
+          var stripe   = window.Stripe(window.__STRIPE_PK__);
+          var checkout = await stripe.initEmbeddedCheckout({ clientSecret: data.clientSecret });
+          _checkout = checkout;
+
+          formEl.innerHTML = '<div id="jc-stripe-mount"></div>';
+          checkout.mount("#jc-stripe-mount");
+        } catch (err) {
+          errorEl.textContent = err.message || "Something went wrong. Please try again.";
           errorEl.style.display = "block";
+          formEl.innerHTML = "";
         }
-
-        function closeOverlay() {
-          overlay.classList.remove("open");
-          if (_currentCheckout) {
-            _currentCheckout.destroy();
-            _currentCheckout = null;
-          }
-          // Reset form area for next open
-          var formEl = document.getElementById("jc-checkout-form");
-          formEl.innerHTML =
-            '<div id="jc-checkout-loading">' +
-            '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1a6b4d" stroke-width="2.5" stroke-linecap="round">' +
-            '<path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>' +
-            "</svg>Loading secure checkout…</div>";
-          errorEl.style.display = "none";
-        }
-
-        closeBtn.addEventListener("click", closeOverlay);
-        overlay.addEventListener("click", function (e) {
-          if (e.target === overlay) closeOverlay();
-        });
-
-        window.__jcOpenCheckout = async function (pendingSettlementId) {
-          overlay.classList.add("open");
-          errorEl.style.display = "none";
-
-          try {
-            // Read email collected during onboarding
-            var userEmail = localStorage.getItem("owed_email") || "";
-
-            var res = await fetch("/api/create-checkout-session", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                settlementId: pendingSettlementId || null,
-                email: userEmail,
-              }),
-            });
-            if (!res.ok) throw new Error("Could not start checkout. Please try again.");
-            var data = await res.json();
-            if (!data.clientSecret) throw new Error(data.error || "Missing client secret.");
-
-            var stripe = window.Stripe(window.__STRIPE_PK__);
-            var checkout = await stripe.initEmbeddedCheckout({
-              clientSecret: data.clientSecret,
-            });
-            _currentCheckout = checkout;
-
-            var formEl = document.getElementById("jc-checkout-form");
-            formEl.innerHTML = '<div id="jc-stripe-mount"></div>';
-            checkout.mount("#jc-stripe-mount");
-          } catch (err) {
-            showError(err.message || "Something went wrong. Please try again.");
-          }
-        };
-      })();
+      };
+    })();
     </script>
   </body>
 </html>
