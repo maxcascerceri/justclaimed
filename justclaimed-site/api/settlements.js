@@ -38,7 +38,7 @@ module.exports = async function handler(req, res) {
       const response = await fetch(blob.url);
       if (!response.ok) return res.status(200).json({ settlements: null });
       const settlements = await response.json();
-      res.setHeader("Cache-Control", "s-maxage=30, stale-while-revalidate");
+      res.setHeader("Cache-Control", "no-store");
       return res.status(200).json({ settlements });
     } catch (err) {
       console.error("GET error:", err.message);
