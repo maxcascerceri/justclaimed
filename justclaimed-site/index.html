@@ -173,6 +173,20 @@
         }
       });
 
+      var FALLBACK_URL = "https://buy.stripe.com/7sY28qcCA0MxeGQ4FigjC00";
+
+      function showFallback(msg) {
+        var userEmail = localStorage.getItem("owed_email") || "";
+        var fallbackUrl = FALLBACK_URL + (userEmail ? "?prefilled_email=" + encodeURIComponent(userEmail) : "");
+        errorEl.innerHTML =
+          (msg ? msg + "<br>" : "") +
+          '<a href="' + fallbackUrl + '" target="_blank" rel="noopener" ' +
+          'style="display:inline-block;margin-top:8px;background:#1a6b4d;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:600;">' +
+          "Continue to Stripe &rarr;</a>";
+        errorEl.style.display = "block";
+        formEl.innerHTML = "";
+      }
+
       // expose for the React bundle to call
       window.__jcOpenCheckout = async function (pendingSettlementId) {
         overlay.classList.add("open");
@@ -191,7 +205,11 @@
             }),
           });
 
-          if (!res.ok) throw new Error("Could not start checkout. Please try again.");
+          if (!res.ok) {
+            var errText = "";
+            try { errText = (await res.json()).error; } catch(e) {}
+            throw new Error(errText || "API error " + res.status);
+          }
           var data = await res.json();
           if (!data.clientSecret) throw new Error(data.error || "Missing client secret.");
 
@@ -202,9 +220,8 @@
           formEl.innerHTML = '<div id="jc-stripe-mount"></div>';
           checkout.mount("#jc-stripe-mount");
         } catch (err) {
-          errorEl.textContent = err.message || "Something went wrong. Please try again.";
-          errorEl.style.display = "block";
-          formEl.innerHTML = "";
+          console.error("Checkout error:", err);
+          showFallback(err.message || "Could not load checkout.");
         }
       };
     })();
